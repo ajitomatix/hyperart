@@ -1,0 +1,9 @@
+This directory contains some automatically converted regular designs 
+from the old dat format to the new XML .had format suitable for viewing 
+in HyperArt.
+
+If you have any old dat format regular-pgon designs, you can convert 
+them using the datRP2had.py script provided with HyperArt.
+
+HyperArt doesn't support new design creation at this point (I hope to 
+code it soon).
