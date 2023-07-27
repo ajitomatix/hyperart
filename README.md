@@ -1,5 +1,5 @@
 # HyperArt
-HyperArt is a program to view and create repeating hyperbolic patterns (tessalations/tilings) using algorithm developed by Dr Douglas Dunham. It generates hyperbolic tessalations projected onto a Poincaré disk. 
+HyperArt is a program to view and create repeating hyperbolic patterns (tessalations/tilings) using [algorithms](https://www.d.umn.edu/~ddunham/) developed by [Dr Douglas Dunham](https://scse.d.umn.edu/faculty-staff/douglas-dunham). It generates hyperbolic tessalations projected onto a Poincaré disk. 
 
 The end result are patterns that are similar to those created by the venerable Dutch artist M. C. Escher. 
 
