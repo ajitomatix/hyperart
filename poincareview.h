@@ -39,11 +39,7 @@ public:
     PoincareView(QWidget* parent=0, Qt::WindowFlags f=Qt::Widget);
 
     ~PoincareView();
-    void print(QPainter& p);
-    void saveAs(QString fileName);
     void documentChanged(Diagram *diagram);
-//    int diameter() { return diameter_; } //poincare disk Diamater
-//    QPoint origin() { return origin_; }
     float diameter(); //poincare disk Diamater
     QPoint origin();
 
@@ -83,7 +79,7 @@ private: //methods
     */
     void drawElement(const ElementPtr e, bool visible=true, bool init = false);
 public:
-    void zoom(ZoomType type);
+    void saveAs(QString fileName);
     void toggleLayer(int layer, bool state);
     void toggleFrame(bool state);
     void animPlay();

@@ -32,33 +32,15 @@ PoincareView::PoincareView(QWidget* parent, Qt::WindowFlags f)
     qDebug() << "Scene Rect: " << scene_->sceneRect();
     this->setScene(scene_);
 
-//    defaultView.scale(0.87,0.87); //zoom out slightly to see the diagram properly
-    //TODO translate so that canvas is always at the center of the window
-//    setTransform(defaultView);
-
-    //connect signals from the MainWindow to our slots
-//    QObject::connect( parent, SIGNAL( doZoom(ZoomType) ), this, SLOT( zoom(ZoomType) ) );
-//    QObject::connect( parent, SIGNAL( doToggleLayer(int,bool) ), this, SLOT( toggleLayer(int,bool) ) );
-//    QObject::connect( parent, SIGNAL( doToggleFrame(bool) ), this, SLOT( toggleFrame(bool) ) );
-//    QObject::connect( parent, SIGNAL( doAnimatePlay() ), this, SLOT( animPlay() ) );
-//    QObject::connect( parent, SIGNAL( doAnimatePause() ), this, SLOT( animPause() ) );
-//    QObject::connect( parent, SIGNAL( doAnimateStop() ), this, SLOT( animStop() ) );
-//    QObject::connect( parent, SIGNAL( doAnimatePrev() ), this, SLOT( animPrev() ) );
-//    QObject::connect( parent, SIGNAL( doAnimateNext() ), this, SLOT( animNext() ) );
-//    QObject::connect( parent, SIGNAL( doPanning(PanType) ), this, SLOT( pan(PanType) ) );
-
-//    animateTimer = new QTimer(this);
-//    connect(animateTimer, SIGNAL(timeout()), this, SLOT(animateTimerDone()));
-
-//    drawBoundingCircle(true, true);
+    // TODO: Set up timer when animation is implemented
+    //    animateTimer = new QTimer(this);
+    //    connect(animateTimer, SIGNAL(timeout()), this, SLOT(animateTimerDone()));
 }
 
 PoincareView::~PoincareView()
 {
-    if(scene_) {
-        delete scene_;
-        scene_ = 0;
-    }
+    delete scene_;
+    delete animateTimer;
 }
 
 void PoincareView::resizeEvent(QResizeEvent *event)
@@ -139,6 +121,9 @@ QPoint PoincareView::origin()
 
 void PoincareView::drawDiagram(bool visible, bool init)
 {
+    if(dgram == nullptr)
+        return;
+
     for(int i=0; i<dgram->numLayers(); i++) {
         drawLayer(i, visible, init);
     }
@@ -186,6 +171,7 @@ void PoincareView::drawElement(const ElementPtr e, bool visible, bool init)
     if(e->lineStyle() == DOTS) {
         pen.setStyle(Qt::DotLine);
     }
+
     //Initialization
     //TODO handle filled/not-filled, (assumes filled for now)
     if(CIRCLE == e->type()) {
@@ -310,50 +296,13 @@ CanvasHyperLine* PoincareView::makeCanvasHyperLine(const HyperLine& mhl)
     return chl;
 }
 
-void PoincareView::print(QPainter& p)
-{
-    //fit to page printing -- ref: http://lists.trolltech.com/qt-interest/2004-12/thread00656-0.html 
-    int pageWidth = p.device()->width();
-    int pageHeight = p.device()->height();
-    
-    //find out the bounding rectangle of all the canvas items
-    //so that we can scale the design to fit the page
-    QRectF bounding;
-    QList<QGraphicsItem*> items = this->scene()->items();
-    QList<QGraphicsItem*>::iterator it;
-    for(it = items.begin(); it != items.end(); ++it) {
-        bounding = bounding.united( (*it)->boundingRect() );
-    }
-    double scaleX = (double)pageWidth/(double)bounding.width();
-    double scaleY = (double)pageHeight/(double)bounding.height();
-    double scale;
-    scale = scaleX > scaleY ? scaleY : scaleX; //select smaller
-    p.scale(scale, scale);
-    p.translate( -bounding.left(), -bounding.top() );
-    scene()->render(&p, bounding);
-}
-
-//TODO: This function no longer works in Qt6. Fix it.
 void PoincareView::saveAs(QString fileName)
 {
-    QPainter painter;
-    QPixmap pix;
-    QGraphicsScene* c = scene();
-    pix = pix.copy(0, 0, c->width(), c->height());
-    painter.begin(&pix);
-    c->render(&painter, QRect(0,0,c->width(), c->height()));
-    painter.end();
-    
-    QFileInfo fi(fileName);
-    QString ext = fi.suffix(); //get only the last extension
-    if(ext == "jpg") {
-        pix.save(fileName, "JPEG");
-    }
-    else if(ext == "png") {
-        pix.save(fileName, "PNG");
-    }
+    QPixmap pix = grab(sceneRect().toRect());
+    pix.save(fileName);
 }
 
+//FIXME: Unused legacy umtested method to be connected to a user action slot
 void PoincareView::pan ( PanType ptype )
 {
     //TODO fix this keyboad scrolling is not working in Linux atleast.
@@ -376,22 +325,7 @@ void PoincareView::pan ( PanType ptype )
     }
 }
 
-void PoincareView::zoom(ZoomType type)
-{
-    QTransform m = transform();
-    if(IN == type) {
-        m.scale(1.1,1.1);
-        setTransform(m);
-    }
-    else if(OUT == type) {
-        m.scale(0.9,0.9);
-        setTransform(m);
-    }
-    else if(DEFAULT == type) {
-        setTransform(defaultView);
-    }
-}
-
+//FIXME: Unused legacy umtested method to be connected to a user action slot
 void PoincareView::toggleLayer(int layerId, bool state)
 {
     if( NORMAL != viewMode_)
@@ -404,6 +338,7 @@ void PoincareView::toggleLayer(int layerId, bool state)
     }
 }
 
+//FIXME: Unused legacy umtested method to be connected to a user action slot
 void PoincareView::toggleFrame(bool state)
 {
     showFrame_ = state;
@@ -411,6 +346,7 @@ void PoincareView::toggleFrame(bool state)
     scene()->update();
 }
 
+//FIXME: Unused legacy umtested method to be connected to a user action slot
 void PoincareView::animPlay()
 {
     viewMode_ = ANIMATE;
@@ -427,6 +363,7 @@ void PoincareView::animPlay()
     paused_ = false;
 }
 
+//FIXME: Unused legacy umtested method to be connected to a user action slot
 void PoincareView::animPause() {
     animateTimer->stop();
     paused_ = true;
@@ -445,6 +382,7 @@ void PoincareView::animStop() {
     //TODO eg only one layer might be visible before animation started
 }
 
+//FIXME: Unused legacy umtested method to be connected to a user action slot
 void PoincareView::animNext() {
     if(paused_) {
         if(dgram->animq.size() == animateNext_) {
@@ -460,6 +398,7 @@ void PoincareView::animNext() {
     }
 }
 
+//FIXME: Unused legacy umtested method to be connected to a user action slot
 void PoincareView::animPrev() {
     if(paused_) {
         if(animateNext_ < 0) {
@@ -475,6 +414,7 @@ void PoincareView::animPrev() {
     }
 }
 
+//FIXME: Unused legacy umtested method to be connected to a user action slot
 void PoincareView::animateTimerDone()
 {
     if(dgram->animq.size() == animateNext_) {
@@ -490,7 +430,7 @@ void PoincareView::animateTimerDone()
     }
 }
 
-
+//FIXME: Unused legacy umtested method to be connected to a user action slot
 void PoincareView::drawFrame(bool visible, bool init)
 {
        PatternList patterns = dgram->allPatterns();
@@ -499,7 +439,7 @@ void PoincareView::drawFrame(bool visible, bool init)
        }
 }
 
-
+//FIXME: Unused legacy umtested method to be connected to a user action slot
 void PoincareView::restoreDiagramState()
 {
     for(int i=0; i<dgram->numLayers(); i++) {

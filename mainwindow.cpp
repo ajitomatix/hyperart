@@ -41,18 +41,13 @@ void MainWindow::on_action_file_save_as_triggered()
     qDebug() << "File > Save as...";
     auto filePath = QFileDialog::getSaveFileName(
         this,
-        tr("Save this design as an image"),
+        tr("Save this design as a PNG or JPEG image"),
         "",
-        tr("Images (*.png *.jpg)")
+        tr("Images (*.png *.jpg *.jpeg)")
         );
 
     if (!filePath.isEmpty())
         view->saveAs(filePath);
-}
-
-void MainWindow::on_action_zoom_in_triggered()
-{
-    view->zoom(ZoomType::IN);
 }
 
 bool MainWindow::openFile(const QString &filePath)
