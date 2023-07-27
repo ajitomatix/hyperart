@@ -22,32 +22,19 @@
 #include <QPaintDevice>
 #include <QPixmap>
 #include <QPolygon>
+#include "QtGui/qevent.h"
 #include "diagram.h"
 
-//============================================================================
-//initialize static data
-int PoincareView::canvasHeight_(768);
-int PoincareView::canvasWidth_(1024);
-int PoincareView::diameter_( PoincareView::canvasHeight() < PoincareView::canvasWidth() ? PoincareView::canvasHeight() : PoincareView::canvasWidth() );
-QPoint PoincareView::origin_( PoincareView::canvasWidth()/2, PoincareView::canvasHeight()/2 );
-//============================================================================
 PoincareView::PoincareView(QWidget* parent, Qt::WindowFlags f)
  : QGraphicsView(parent), viewMode_(NORMAL), showFrame_ (true)
 {
-// TODO: remove if not needed
-//    QObject::connect(docViewer, SIGNAL(onDocumentChange(unsigned int, unsigned long)),
-//                    this, SLOT(onDocumentChange()));
-//    QObject::connect(docViewer, SIGNAL(onDocumentFirstChange(unsigned int, unsigned long)),
-//                    this, SLOT(onDocumentChange()));
-// end of TODO
-
-    scene_ = new QGraphicsScene(QRect(0, 0, PoincareView::canvasWidth_, PoincareView::canvasHeight_));
+    scene_ = new QGraphicsScene(parent->rect(), this);
     qDebug() << "Scene Rect: " << scene_->sceneRect();
     this->setScene(scene_);
 
-    defaultView.scale(0.87,0.87); //zoom out slightly to see the diagram properly
+//    defaultView.scale(0.87,0.87); //zoom out slightly to see the diagram properly
     //TODO translate so that canvas is always at the center of the window
-    setTransform(defaultView);
+//    setTransform(defaultView);
 
     //connect signals from the MainWindow to our slots
 //    QObject::connect( parent, SIGNAL( doZoom(ZoomType) ), this, SLOT( zoom(ZoomType) ) );
@@ -62,8 +49,8 @@ PoincareView::PoincareView(QWidget* parent, Qt::WindowFlags f)
 
 //    animateTimer = new QTimer(this);
 //    connect(animateTimer, SIGNAL(timeout()), this, SLOT(animateTimerDone()));
-    
-    drawBoundingCircle(true, true);
+
+//    drawBoundingCircle(true, true);
 }
 
 PoincareView::~PoincareView()
@@ -72,6 +59,255 @@ PoincareView::~PoincareView()
         delete scene_;
         scene_ = 0;
     }
+}
+
+void PoincareView::resizeEvent(QResizeEvent *event)
+{
+    qDebug() << "Old size: " << event->oldSize();
+    qDebug() << "New size: " << event->size();
+    qDebug() << "View size: " << size();
+
+
+    diameter_ = height() < width() ? height() : width();
+    origin_ = QPoint(width()/2, height() / 2);
+    setSceneRect(0, 0, width(), height());
+    fitInView(sceneRect());
+
+    scene()->clear();
+    drawBoundingCircle(true,true);
+
+    if(dgram) {
+        drawDiagram(true, true);
+//        drawFrame(showFrame_,true);
+    }
+
+    QGraphicsView::resizeEvent(event);
+}
+
+void PoincareView::documentChanged(Diagram* diagram)
+{
+    dgram = diagram;
+    dgram->make();
+
+    init();
+    drawBoundingCircle(true,true);
+    drawDiagram(true,true);
+//    drawFrame(showFrame_,true);
+}
+
+void PoincareView::init()
+{
+    animDelay_ = 200;
+    if(animateTimer) {
+        animateTimer->stop();
+        animateNext_ = 0;
+        paused_ = false;
+    }
+
+    items_.clear(); //clear our item list
+
+    scene()->clear();
+
+    viewMode_ = NORMAL;
+}
+
+void PoincareView::drawBoundingCircle(bool visible, bool init)
+{
+    if(init) {
+        qDebug() << "Poincare Bounding Circle\n diameter: " << diameter() << "; origin: " << origin();
+        auto rect = QRectF(QPointF(0,0), QSizeF(diameter(), diameter()));
+        rect.moveCenter(origin());
+        disk = new QGraphicsEllipseItem(rect);
+        qDebug() << "Disk bounding rect: " << disk->rect();
+        disk->setBrush(QColor(224, 224, 224));
+        disk->setZValue(-100);
+    }
+    disk->setVisible(visible);
+    scene()->addItem(disk);
+}
+
+
+float PoincareView::diameter()
+{
+    return diameter_;
+}
+
+QPoint PoincareView::origin()
+{
+    return origin_;
+}
+
+void PoincareView::drawDiagram(bool visible, bool init)
+{
+    for(int i=0; i<dgram->numLayers(); i++) {
+        drawLayer(i, visible, init);
+    }
+}
+
+void PoincareView::drawLayer(const int layerId, bool visible, bool init)
+{
+    PatternList patterns = dgram->layerPatterns(layerId);
+    qDebug() << "Rendering" << patterns.count() << "patterns in layer" << layerId;
+    PatternListIter it;
+    for(it = patterns.begin(); it != patterns.end(); ++it) {
+        drawPattern(**it, visible, init);
+    }
+    isLayerVisible[layerId] = visible;
+}
+
+void PoincareView::drawPattern(const Pattern& pat, bool visible, bool init)
+{
+    ElemList elems = pat.elems();
+    //DEBUG
+    qDebug() << "Rendering" << elems.count() << "elements in pattern" << pat.id();
+    for(ElemListIter it = elems.begin(); it != elems.end(); ++it) {
+        drawElement(*it, visible, init);
+    }
+}
+
+void PoincareView::drawPatternFrame(const Pattern& pat, bool visible, bool init)
+{
+    ElemList frame = pat.frame();
+    for(ElemListIter it = frame.begin(); it != frame.end(); ++it) {
+        drawElement(*it, visible, init);
+    }
+}
+
+void PoincareView::drawElement(const ElementPtr e, bool visible, bool init)
+{
+    if(! init) { //only show/hide existing
+        if(items_.contains(e->id())) {
+            items_[e->id()]->setVisible(visible);
+        }
+        return;
+    }
+
+    QPen pen(dgram->colorMapVal(e->cid()));
+    if(e->lineStyle() == DOTS) {
+        pen.setStyle(Qt::DotLine);
+    }
+    //Initialization
+    //TODO handle filled/not-filled, (assumes filled for now)
+    if(CIRCLE == e->type()) {
+        //first point is the center and second is a point on the circumference
+        //calculate radius and draw
+        Point center = e->getPoint(0);
+        Point circum = e->getPoint(1);
+        QPointF p1 = makeQPointF(center);
+        QPointF p2 = makeQPointF(circum);
+        double radius = sqrt(pow(double(p1.x() - p2.x()), 2) + pow(double(p1.y() - p2.y()), 2));
+        CanvasEllipse* circle = new CanvasEllipse(QRectF(p1.x() - radius, p1.y() - radius, 2*radius, 2*radius));
+        circle->setZValue(e->zorder());
+        circle->setPen(pen);
+        circle->setBrush(dgram->colorMapVal(e->cid()));
+        circle->setFilled(e->filled());
+        circle->setVisible(visible);
+        items_.insert(e->id(), circle);
+        scene()->addItem(circle);
+    }
+    else if(EUCLID_POLY == e->type()) {
+        //There are n points, last point should be joined to first
+        CanvasPoly* poly = new CanvasPoly();
+        QPolygon pa(e->numPoints());
+        QPointF pt;
+        int i=0;
+        for(i=0; i<e->numPoints(); ++i) {
+            pt = makeQPointF(e->getPoint(i));
+            pa.setPoint(i, pt.x(), pt.y());
+        }
+        poly->setPolygon(pa);
+        poly->setZValue(e->zorder());
+        poly->setPen(pen);
+        poly->setBrush(dgram->colorMapVal(e->cid()));
+        poly->setFilled(e->filled());
+        poly->setVisible(visible);
+        items_.insert(e->id(), poly);
+        scene()->addItem(poly);
+    }
+    else if(EUCLID_POLYLINE == e->type()) {
+        CanvasPolyLine* polyline = new CanvasPolyLine();
+        QVector<QPointF> points(e->numPoints());
+        int i=0;
+        for(i=0; i<e->numPoints(); ++i) {
+            QPointF pt = makeQPointF(e->getPoint(i));
+            // We have initialized the points vector with numPoints points each with value (0,0)
+            // Now replace point at each index with the actual coordinates read from the design
+            points.replace(i, pt);
+        }
+        QPolygonF pa(points);
+        polyline->setPolygon(pa);
+        polyline->setZValue(e->zorder());
+        polyline->setPen(pen);
+        polyline->setVisible(visible);
+        items_.insert(e->id(), polyline);
+        scene()->addItem(polyline);
+    }
+    else if(HYPER_POLYLINE == e->type()) {
+        HyperPolyLine* hpl = (HyperPolyLine*)e;
+        vector<HyperLine>& mhlines = hpl->hyperLines();
+        CanvasHyperPolyLine* hpolyline = new CanvasHyperPolyLine();
+
+        vector<HyperLine>::iterator it;
+        for(it = mhlines.begin(); it != mhlines.end(); ++it) {
+            CanvasHyperLine* chl = makeCanvasHyperLine(*it);
+            hpolyline->addLine(chl);
+        }
+        hpolyline->setPen(pen);
+        hpolyline->setZValue(e->zorder());
+        hpolyline->setVisible(visible);
+        items_.insert(e->id(), hpolyline);
+        scene()->addItem(hpolyline);
+    }
+    else if(HYPER_POLY == e->type()) {
+        HyperPoly* hp = (HyperPoly*)e;
+        vector<HyperLine>& mhlines = hp->hyperLines();
+        CanvasHyperPoly* hpoly = new CanvasHyperPoly();
+
+        vector<HyperLine>::iterator it;
+        for(it = mhlines.begin(); it != mhlines.end(); ++it) {
+            CanvasHyperLine* chl = makeCanvasHyperLine(*it);
+            hpoly->addLine(chl);
+        }
+        hpoly->setPen(pen);
+        hpoly->setBrush(dgram->colorMapVal(e->cid()));
+        hpoly->setZValue(e->zorder());
+        hpoly->setVisible(visible);
+        hpoly->setFilled(hp->filled());
+        items_.insert(e->id(), hpoly);
+        scene()->addItem(hpoly);
+    }
+    else {
+        throw "PoincareView::drawElement: Unknown element type!";
+    }
+}
+
+QPointF PoincareView::makeQPointF(const Point& mp)
+{
+    QPointF pt;
+    Point tmp(mp);
+    tmp.weierstrassToPoincare();
+
+    double x,y;
+    //map it to scene coordinates
+    x = (tmp.x() * diameter()/2 + origin().x());
+    y = diameter() - (tmp.y() * diameter()/2 + origin().y());
+    pt.setX(x);
+    pt.setY(y);
+    return pt;
+}
+
+CanvasHyperLine* PoincareView::makeCanvasHyperLine(const HyperLine& mhl)
+{
+    CanvasHyperLine* chl = 0;
+    if(mhl.shouldDrawArc()) {
+        QPointF tl = makeQPointF(mhl.topLeft());
+        QSize sz(mhl.width() * diameter()/2, mhl.height() * diameter()/2);
+        chl = new CanvasHyperLine(tl, sz, mhl.startAngle(), mhl.endAngle());
+    }
+    else {
+        chl = new CanvasHyperLine(makeQPointF(mhl.startPoint()), makeQPointF(mhl.endPoint()));
+    }
+    return chl;
 }
 
 void PoincareView::print(QPainter& p)
@@ -97,6 +333,7 @@ void PoincareView::print(QPainter& p)
     scene()->render(&p, bounding);
 }
 
+//TODO: This function no longer works in Qt6. Fix it.
 void PoincareView::saveAs(QString fileName)
 {
     QPainter painter;
@@ -123,13 +360,13 @@ void PoincareView::pan ( PanType ptype )
     const int stepSize = 50;
     int hScroll=0, vScroll=0;
     if(PAN_LEFT == ptype)
-        hScroll = canvasWidth()/stepSize;
+        hScroll = sceneRect().width()/stepSize;
     else if(PAN_RIGHT == ptype)
-        hScroll = -canvasWidth()/stepSize;
+        hScroll = - sceneRect().width()/stepSize;
     else if(PAN_UP == ptype)
-        vScroll = canvasHeight()/stepSize;
+        vScroll = sceneRect().height()/stepSize;
     else if(PAN_DOWN == ptype)
-        vScroll = -canvasHeight()/stepSize;
+        vScroll = -sceneRect().height()/stepSize;
     if(hScroll || vScroll) {
         QTransform wm = transform();
         wm.translate(hScroll,vScroll);
@@ -253,43 +490,6 @@ void PoincareView::animateTimerDone()
     }
 }
 
-void PoincareView::init()
-{
-    animDelay_ = 200;
-    if(animateTimer) {
-        animateTimer->stop();
-        animateNext_ = 0;
-        paused_ = false;
-    }
-    
-    items_.clear(); //clear our item list
-    
-    //then delete all actual items on the underlaying canvas
-    //this will also delete the boundingCircle
-    //but onNewDocument will recreate it
-    QList<QGraphicsItem*> itemList = scene()->items();
-    QList<QGraphicsItem*>::iterator it;
-    for(it= itemList.begin(); it != itemList.end(); ++it) {
-        (*it)->hide(); //this is needed
-        delete *it;
-    }
-    viewMode_ = NORMAL;
-}
-
-void PoincareView::drawBoundingCircle(bool visible, bool init)
-{
-    if(init) {
-        qDebug() << "Poincare Bounding Circle\n diameter: " << diameter() << "; origin: " << origin();
-        auto rect = QRectF(QPointF(0,0), QSizeF(diameter(), diameter()));
-        rect.moveCenter(origin());
-        disk = new QGraphicsEllipseItem(rect);
-        qDebug() << "Disk bounding rect: " << disk->rect();
-        disk->setBrush(QColor(224, 224, 224));
-        disk->setZValue(-100);
-    }
-    disk->setVisible(visible);
-    scene()->addItem(disk);
-}
 
 void PoincareView::drawFrame(bool visible, bool init)
 {
@@ -305,214 +505,4 @@ void PoincareView::restoreDiagramState()
     for(int i=0; i<dgram->numLayers(); i++) {
         drawLayer(i,isLayerVisible[i]);
     }
-}
-
-void PoincareView::drawDiagram(bool visible, bool init)
-{
-//        PatternList patterns = dgram->allPatterns();
-//        cerr<<"There are "<<patterns.count()<<" patterns in this diagram"<<endl;
-//        for(PatternListIter it = patterns.begin(); it != patterns.end(); ++it) {
-//             drawPattern(**it, visible, init);
-//        }
-    for(int i=0; i<dgram->numLayers(); i++) {
-        drawLayer(i, visible, init);
-    }
-}
-
-void PoincareView::drawLayer(const int layerId, bool visible, bool init)
-{
-    PatternList patterns = dgram->layerPatterns(layerId);
-    qDebug() << "There are " << patterns.count() << " patterns in this diagram";
-    PatternListIter it;
-    for(it = patterns.begin(); it != patterns.end(); ++it) {
-        drawPattern(**it, visible, init);
-    }
-    isLayerVisible[layerId] = visible;
-}
-
-void PoincareView::drawPattern(const Pattern& pat, bool visible, bool init)
-{
-    ElemList elems = pat.elems();
-    //DEBUG
-    qDebug() << "There are " << elems.count() << " elements in this pattern";
-    for(ElemListIter it = elems.begin(); it != elems.end(); ++it) {
-        drawElement(*it, visible, init);
-    }
-}
-
-void PoincareView::drawPatternFrame(const Pattern& pat, bool visible, bool init)
-{
-    ElemList frame = pat.frame();
-    for(ElemListIter it = frame.begin(); it != frame.end(); ++it) {
-        drawElement(*it, visible, init);
-    }
-}
-
-void PoincareView::drawElement(const ElementPtr e, bool visible, bool init)
-{
-    if(! init) { //only show/hide existing
-        if(items_.contains(e->id())) {
-            items_[e->id()]->setVisible(visible);
-        }
-        return;
-    }
-    
-    QPen pen(dgram->colorMapVal(e->cid()));
-    if(e->lineStyle() == DOTS) {
-        pen.setStyle(Qt::DotLine);
-    }
-    //Initialization
-    //TODO handle filled/not-filled, (assumes filled for now)
-    if(CIRCLE == e->type()) {
-        //first point is the center and second is a point on the circumference
-        //calculate radius and draw
-        Point center = e->getPoint(0);
-        Point circum = e->getPoint(1);
-        QPointF p1 = makeQPointF(center);
-        QPointF p2 = makeQPointF(circum);
-        double radius = sqrt(pow(double(p1.x() - p2.x()), 2) + pow(double(p1.y() - p2.y()), 2));
-        CanvasEllipse* circle = new CanvasEllipse(QRectF(p1.x() - radius, p1.y() - radius, 2*radius, 2*radius));
-        //circle->setX(p1.x());
-        //circle->setY(p2.y());
-        circle->setZValue(e->zorder());
-        circle->setPen(pen);
-        circle->setBrush(dgram->colorMapVal(e->cid()));
-        circle->setFilled(e->filled());
-        circle->setVisible(visible);
-        items_.insert(e->id(), circle);
-        scene()->addItem(circle);
-        //DEBUG
-//        qDebug() << "In drawElement CIRCLE radius = " << radius;
-    }
-    else if(EUCLID_POLY == e->type()) {
-        //There are n points, last point should be joined to first
-        CanvasPoly* poly = new CanvasPoly();
-        QPolygon pa(e->numPoints());
-        QPointF pt;
-        int i=0;
-        for(i=0; i<e->numPoints(); ++i) {
-            pt = makeQPointF(e->getPoint(i));
-            pa.setPoint(i, pt.x(), pt.y());
-        }
-//        QRect boundingRect = pa.boundingRect();
-//        QPoint center = boundingRect.center();
-        poly->setPolygon(pa);
-        poly->setX(0); //TODO set x,y to sane values other than 0
-        poly->setY(0);
-        poly->setZValue(e->zorder());
-        poly->setPen(pen);
-        poly->setBrush(dgram->colorMapVal(e->cid()));
-        poly->setFilled(e->filled());
-        poly->setVisible(visible);
-        items_.insert(e->id(), poly);
-        scene()->addItem(poly);
-        //DEBUG
-//        qDebug() << "In drawElement EUCLID_POLY " << center.x() << "," << center.y();
-    }
-    else if(EUCLID_POLYLINE == e->type()) {
-        CanvasPolyLine* polyline = new CanvasPolyLine();
-        QVector<QPointF> points(e->numPoints());
-        int i=0;
-        for(i=0; i<e->numPoints(); ++i) {
-            QPointF pt = makeQPointF(e->getPoint(i));
-            // We have initialized the points vector with numPoints points each with value (0,0)
-            // Now replace point at each index with the actual coordinates read from the design
-            points.replace(i, pt);
-        }
-        QPolygonF pa(points);
-        polyline->setPolygon(pa);
-//        polyline->setX(0); //TODO set x,y to sane values other than 0
-//        polyline->setY(0);
-        polyline->setZValue(e->zorder());
-        polyline->setPen(pen);
-        polyline->setVisible(visible);
-        items_.insert(e->id(), polyline);
-        scene()->addItem(polyline);
-        //DEBUG
-//        qDebug() << "In drawElement EUCLID_POLYLINE ";
-    }
-    else if(HYPER_POLYLINE == e->type()) {
-        HyperPolyLine* hpl = (HyperPolyLine*)e;
-        vector<HyperLine>& mhlines = hpl->hyperLines();
-        CanvasHyperPolyLine* hpolyline = new CanvasHyperPolyLine();
-        
-        vector<HyperLine>::iterator it;
-        for(it = mhlines.begin(); it != mhlines.end(); ++it) {
-            CanvasHyperLine* chl = makeCanvasHyperLine(*it);
-            hpolyline->addLine(chl);
-        }
-        hpolyline->setPen(pen);
-//        hpolyline->setX(0); //TODO set x,y to sane values other than 0
-//        hpolyline->setY(0);
-        hpolyline->setZValue(e->zorder());
-        hpolyline->setVisible(visible);
-        items_.insert(e->id(), hpolyline);
-        scene()->addItem(hpolyline);
-//        qDebug() << "In drawElement HYPER_POLYLINE ";
-    }
-    else if(HYPER_POLY == e->type()) {
-        HyperPoly* hp = (HyperPoly*)e;
-        vector<HyperLine>& mhlines = hp->hyperLines();
-        CanvasHyperPoly* hpoly = new CanvasHyperPoly();
-        
-        vector<HyperLine>::iterator it;
-        for(it = mhlines.begin(); it != mhlines.end(); ++it) {
-            CanvasHyperLine* chl = makeCanvasHyperLine(*it);
-            hpoly->addLine(chl);
-        }
-        hpoly->setPen(pen);
-        hpoly->setBrush(dgram->colorMapVal(e->cid()));
-//        hpoly->setX(0); //TODO set x,y to sane values other than 0
-//        hpoly->setY(0);
-        hpoly->setZValue(e->zorder());
-        hpoly->setVisible(visible);
-        hpoly->setFilled(hp->filled());
-        items_.insert(e->id(), hpoly);
-        scene()->addItem(hpoly);
-//        qDebug() << "In drawElement HYPER_POLYLINE ";
-    }
-    else {
-        throw "PoincareView::drawElement: Unknown element type!";
-    }
-}
-
-void PoincareView::documentChanged(Diagram* diagram)
-{
-    init();
-    drawBoundingCircle(true,true); //initialize disk
-    dgram = diagram;
-    dgram->make();
-    drawDiagram(true,true); //initialize
-    drawFrame(showFrame_,true); //initialize
-    
-//    scene()->update(scene()->sceneRect());
-}
-
-QPointF PoincareView::makeQPointF(const Point& mp)
-{
-    QPointF pt;
-    Point tmp(mp);
-    tmp.weierstrassToPoincare();
-    
-    double x,y;
-    //map it to scene coordinates
-    x = (tmp.x() * diameter()/2 + origin().x());
-    y = diameter() - (tmp.y() * diameter()/2 + origin().y());
-    pt.setX(x);
-    pt.setY(y);
-    return pt;
-}
-
-CanvasHyperLine* PoincareView::makeCanvasHyperLine(const HyperLine& mhl)
-{
-    CanvasHyperLine* chl = 0;
-    if(mhl.shouldDrawArc()) {
-        QPointF tl = makeQPointF(mhl.topLeft());
-        QSize sz(mhl.width() * diameter()/2, mhl.height() * diameter()/2);
-        chl = new CanvasHyperLine(tl, sz, mhl.startAngle(), mhl.endAngle());
-    }
-    else {
-        chl = new CanvasHyperLine(makeQPointF(mhl.startPoint()), makeQPointF(mhl.endPoint()));
-    }
-    return chl;
 }

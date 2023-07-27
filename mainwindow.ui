@@ -29,21 +29,146 @@
     <property name="title">
      <string>&amp;File</string>
     </property>
-    <addaction name="action_Open"/>
+    <addaction name="action_file_open"/>
+    <addaction name="action_file_save_as"/>
+    <addaction name="action_file_print"/>
+   </widget>
+   <widget class="QMenu" name="menu_Zoom">
+    <property name="title">
+     <string>&amp;Zoom</string>
+    </property>
+    <addaction name="action_zoom_in"/>
+    <addaction name="action_zoom_out"/>
+    <addaction name="action_zoom_to_fit"/>
+   </widget>
+   <widget class="QMenu" name="menu_Animate">
+    <property name="title">
+     <string>&amp;Animate</string>
+    </property>
+    <addaction name="action_animation_start"/>
+    <addaction name="action_animation_pause"/>
+    <addaction name="action_animation_stop"/>
+    <addaction name="action_animation_forward"/>
+    <addaction name="action_animation_rewind"/>
    </widget>
    <addaction name="menu_File"/>
+   <addaction name="menu_Zoom"/>
+   <addaction name="menu_Animate"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
-  <action name="action_Open">
+  <widget class="QToolBar" name="toolBar">
+   <property name="windowTitle">
+    <string>toolBar</string>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="action_file_open"/>
+   <addaction name="action_file_save_as"/>
+   <addaction name="action_file_print"/>
+   <addaction name="separator"/>
+   <addaction name="action_zoom_in"/>
+   <addaction name="action_zoom_out"/>
+   <addaction name="action_zoom_to_fit"/>
+   <addaction name="separator"/>
+   <addaction name="action_animation_start"/>
+   <addaction name="action_animation_pause"/>
+   <addaction name="action_animation_stop"/>
+   <addaction name="action_animation_rewind"/>
+   <addaction name="action_animation_forward"/>
+  </widget>
+  <action name="action_file_save_as">
    <property name="icon">
-    <iconset theme="document-open">
-     <normaloff>.</normaloff>.</iconset>
+    <iconset theme="document-save-as"/>
+   </property>
+   <property name="text">
+    <string>S&amp;ave as</string>
+   </property>
+   <property name="toolTip">
+    <string>Save as</string>
+   </property>
+  </action>
+  <action name="action_zoom_in">
+   <property name="icon">
+    <iconset theme="zoom-in"/>
+   </property>
+   <property name="text">
+    <string>Zoom &amp;in</string>
+   </property>
+  </action>
+  <action name="action_zoom_out">
+   <property name="icon">
+    <iconset theme="zoom-out"/>
+   </property>
+   <property name="text">
+    <string>Zoom &amp;out</string>
+   </property>
+  </action>
+  <action name="action_zoom_to_fit">
+   <property name="icon">
+    <iconset theme="zoom-fit-best"/>
+   </property>
+   <property name="text">
+    <string>Zoom to &amp;fit</string>
+   </property>
+  </action>
+  <action name="action_animation_start">
+   <property name="icon">
+    <iconset theme="media-playback-start"/>
+   </property>
+   <property name="text">
+    <string>&amp;Start</string>
+   </property>
+  </action>
+  <action name="action_animation_pause">
+   <property name="icon">
+    <iconset theme="media-playback-pause"/>
+   </property>
+   <property name="text">
+    <string>P&amp;ause</string>
+   </property>
+  </action>
+  <action name="action_animation_stop">
+   <property name="icon">
+    <iconset theme="media-playback-stop"/>
+   </property>
+   <property name="text">
+    <string>S&amp;top</string>
+   </property>
+  </action>
+  <action name="action_animation_forward">
+   <property name="icon">
+    <iconset theme="media-seek-forward"/>
+   </property>
+   <property name="text">
+    <string>&amp;Forward</string>
+   </property>
+  </action>
+  <action name="action_animation_rewind">
+   <property name="icon">
+    <iconset theme="media-seek-backward"/>
+   </property>
+   <property name="text">
+    <string>&amp;Rewind</string>
+   </property>
+  </action>
+  <action name="action_file_print">
+   <property name="icon">
+    <iconset theme="printer"/>
+   </property>
+   <property name="text">
+    <string>&amp;Print</string>
+   </property>
+  </action>
+  <action name="action_file_open">
+   <property name="icon">
+    <iconset theme="document-open"/>
    </property>
    <property name="text">
     <string>&amp;Open</string>
-   </property>
-   <property name="toolTip">
-    <string>Open a HyperArt Design File</string>
    </property>
   </action>
  </widget>

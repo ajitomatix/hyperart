@@ -22,7 +22,9 @@ private:
     bool loadFile(const QString &fileName);
 
 private slots:
-    void on_action_Open_triggered();
+    void on_action_file_open_triggered();
+    void on_action_file_save_as_triggered();
+    void on_action_zoom_in_triggered();
 
 private:
     Ui::MainWindow *ui;

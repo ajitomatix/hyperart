@@ -11,7 +11,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
 
     view = new PoincareView(this);
-    centralWidget()->layout()->addWidget(view);
+    centralWidget()->layout()->addWidget(view);    
 }
 
 MainWindow::~MainWindow()
@@ -21,28 +21,48 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void MainWindow::on_action_Open_triggered()
+void MainWindow::on_action_file_open_triggered()
 {
-    const QString fileName = QFileDialog::getOpenFileName(
-        this, tr("Open a HyperArt Design"), "../../../../../hyperart_qtwidgets/designs/", tr("HyperArt Designs (*.had)")
+    auto filePath = QFileDialog::getOpenFileName(
+        this,
+        tr("Open a HyperArt Design"),
+        "../../../../../hyperart_qtwidgets/designs/",
+        tr("HyperArt Designs (*.had)")
         );
 
-    qDebug() << "Filename: " << fileName;
+    qDebug() << "File: " << filePath;
 
-    if (!fileName.isEmpty())
-        openFile(fileName);
-
-//    openFile("/Users/ajit/Development/qt/hyperart/hyperart_qtwidgets/designs/irp/tri.had");
-//    openFile("/Users/ajit/Development/qt/hyperart/hyperart_qtwidgets/designs/cl2.had");
-
+    if (!filePath.isEmpty())
+        openFile(filePath);
 }
 
-
-bool MainWindow::openFile(const QString &fileName)
+void MainWindow::on_action_file_save_as_triggered()
 {
-    const bool succeeded = loadFile(fileName);
-    if (succeeded)
+    qDebug() << "File > Save as...";
+    auto filePath = QFileDialog::getSaveFileName(
+        this,
+        tr("Save this design as an image"),
+        "",
+        tr("Images (*.png *.jpg)")
+        );
+
+    if (!filePath.isEmpty())
+        view->saveAs(filePath);
+}
+
+void MainWindow::on_action_zoom_in_triggered()
+{
+    view->zoom(ZoomType::IN);
+}
+
+bool MainWindow::openFile(const QString &filePath)
+{
+    const bool succeeded = loadFile(filePath);
+    if (succeeded) {
         statusBar()->showMessage(tr("File loaded"), 2000);
+        QFileInfo fileinfo(filePath);
+        this->setWindowTitle(fileinfo.baseName());
+    }
     else
         statusBar()->showMessage(tr("Didn't load a design"), 2000);
     return succeeded;
@@ -58,4 +78,3 @@ bool MainWindow::loadFile(const QString &fileName)
     }
     return succeeded;
 }
-

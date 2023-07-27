@@ -35,23 +35,6 @@ All the drawing is done using a QGraphicsScene
 class PoincareView : public QGraphicsView
 {
 Q_OBJECT
-public: //static methods
-    //static set methods
-//    static int setDefaultCanvasHeight(int h);
-//    static int setDefaultCanvasWidth(int w);
-    
-    //static get methods
-    static int canvasWidth() { return PoincareView::canvasWidth_; }
-    static int canvasHeight() { return PoincareView::canvasHeight_; }
-    static int diameter() { return diameter_; } //poincare disk Diamater
-    static QPoint origin() { return origin_; }
-private: //static methods
-    static int calcDiameter();
-private: //static data
-    static int canvasWidth_;
-    static int canvasHeight_;
-    static int diameter_;
-    static QPoint origin_; 
 public:
     PoincareView(QWidget* parent=0, Qt::WindowFlags f=Qt::Widget);
 
@@ -59,7 +42,14 @@ public:
     void print(QPainter& p);
     void saveAs(QString fileName);
     void documentChanged(Diagram *diagram);
-    //set methods
+//    int diameter() { return diameter_; } //poincare disk Diamater
+//    QPoint origin() { return origin_; }
+    float diameter(); //poincare disk Diamater
+    QPoint origin();
+
+protected:
+    void resizeEvent(QResizeEvent *event) override;
+
 private: //methods
     void init();
     /**
@@ -92,7 +82,7 @@ private: //methods
     funtions in the Diagram class). drawPattern will map it to the scene coordinates and draw the elements.
     */
     void drawElement(const ElementPtr e, bool visible=true, bool init = false);
-private slots:
+public:
     void zoom(ZoomType type);
     void toggleLayer(int layer, bool state);
     void toggleFrame(bool state);
@@ -111,6 +101,8 @@ private: //utility functions not part of the general view interface
     QPointF makeQPointF(const Point& mp);
     CanvasHyperLine* makeCanvasHyperLine(const HyperLine& mhl);
 private: //data
+    int diameter_;
+    QPoint origin_;
     QGraphicsScene* scene_;
     QGraphicsEllipseItem* disk; //the poincare disk
     ViewMode viewMode_;

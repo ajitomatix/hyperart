@@ -42,7 +42,7 @@ public:
     
     ~Pattern();
     
-    UId id() { return patId_; }
+    UId id() const { return patId_; }
     //void setId(UId id) { patId_ = id; }
     
     /**
