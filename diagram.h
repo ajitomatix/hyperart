@@ -117,7 +117,7 @@ protected: //data
     /**
     Number of Layers to generate
     */
-    int numLayers_ = 3;
+    int numLayers_ = 4;
     /**
     diag_ is collection of all the patterns.
     */
