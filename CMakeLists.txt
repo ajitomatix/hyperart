@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 
-project(hyperart_qtwidgets VERSION 0.1 LANGUAGES CXX)
+project(hyperart_qtwidgets VERSION 0.9.1 LANGUAGES CXX)
 
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
@@ -52,8 +52,10 @@ set(PROJECT_SOURCES
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(hyperart_qtwidgets
+        MACOSX_BUNDLE
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
+        ${CMAKE_SOURCE_DIR}/icons/HyperArt.icns
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET hyperart_qtwidgets APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
@@ -77,12 +79,15 @@ target_link_libraries(hyperart_qtwidgets PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
 target_link_libraries(hyperart_qtwidgets PRIVATE Qt${QT_VERSION_MAJOR}::Xml)
 
 set_target_properties(hyperart_qtwidgets PROPERTIES
-    MACOSX_BUNDLE_GUI_IDENTIFIER hyperart.ajitomatix.com
+    MACOSX_BUNDLE_GUI_IDENTIFIER com.ajitomatix.hyperart
     MACOSX_BUNDLE_BUNDLE_NAME "Hyper Art"
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
     MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
     MACOSX_BUNDLE TRUE
     WIN32_EXECUTABLE TRUE
+    OUTPUT_NAME "HyperArt"
+    MACOSX_BUNDLE_ICON_FILE HyperArt.icns
+    RESOURCE ${CMAKE_SOURCE_DIR}/icons/HyperArt.icns
 )
 
 install(TARGETS hyperart_qtwidgets

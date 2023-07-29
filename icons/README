@@ -1,0 +1,6 @@
+## MacOS X Icon Generation (.icns)
+We're using a utility from https://decovar.dev/blog/2018/10/09/macos-convert-png-to-icns/
+To generate .icns from HyperArt.png:
+- pip install generate-iconset (https://pypi.org/project/generate-iconset/)
+- brew install imagemagick
+- generate-iconset HyperArt.png 
