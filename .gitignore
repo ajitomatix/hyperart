@@ -1,0 +1,23 @@
+# macOS specific
+.DS_Store
+
+# CMake and Build directories
+build/
+build-*/
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+Makefile
+compile_commands.json
+
+# Qt Creator specific
+*.user
+*.user.*
+*.user.shared
+
+# Binaries / Executables
+*.app/
+*.exe
+*.dll
+*.so
+*.dylib
