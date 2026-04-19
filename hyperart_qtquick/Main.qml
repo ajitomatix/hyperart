@@ -9,30 +9,104 @@ ApplicationWindow {
     width: 1024
     height: 768
     visible: true
-    title: qsTr("Hyper Art")
+    title: qsTr("Hyper Art") + (appController.documentTitle ? " - " + appController.documentTitle : "")
     
-    // We hold a single instance of AppController tied to our window lifecycle
     AppController {
         id: appController
         onLoadFailed: function(message) {
             statusBarText.text = qsTr("Error: ") + message;
         }
         onDiagramChanged: {
-            statusBarText.text = qsTr("File loaded successfully.");
+            if (hasDiagram) {
+                statusBarText.text = qsTr("File loaded successfully.");
+            }
         }
+    }
+
+    Action {
+        id: openAction
+        text: qsTr("&Open...")
+        icon.name: "document-open"
+        shortcut: "Ctrl+O"
+        onTriggered: fileDialog.open()
+    }
+    Action {
+        id: saveAsAction
+        text: qsTr("&Save As...")
+        icon.name: "document-save-as"
+        shortcut: "Ctrl+S"
+        enabled: appController.hasDiagram
+        onTriggered: saveFileDialog.open()
+    }
+    Action {
+        id: playPauseAction
+        text: animTimer.running ? qsTr("&Pause") : qsTr("&Play")
+        icon.name: animTimer.running ? "media-playback-pause" : "media-playback-start"
+        enabled: appController.hasDiagram && appController.totalAnimationSteps > 0
+        shortcut: "Space"
+        onTriggered: {
+            if (animTimer.running) {
+                animTimer.stop()
+            } else {
+                if (appController.animationStep < 0 || appController.animationStep >= appController.totalAnimationSteps) {
+                    appController.animationStep = 0
+                }
+                animTimer.start()
+            }
+        }
+    }
+    Action {
+        id: stopAction
+        text: qsTr("St&op")
+        icon.name: "media-playback-stop"
+        enabled: appController.hasDiagram && appController.animationStep >= 0
+        shortcut: "Escape"
+        onTriggered: {
+            animTimer.stop()
+            appController.animationStep = -1
+        }
+    }
+    Action {
+        id: nextStepAction
+        text: qsTr("Next Frame")
+        icon.name: "media-seek-forward"
+        enabled: appController.hasDiagram && appController.animationStep < appController.totalAnimationSteps
+        shortcut: "Right"
+        onTriggered: appController.nextAnimationStep()
+    }
+    Action {
+        id: prevStepAction
+        text: qsTr("Previous Frame")
+        icon.name: "media-seek-backward"
+        enabled: appController.hasDiagram && appController.animationStep > 0
+        shortcut: "Left"
+        onTriggered: appController.prevAnimationStep()
+    }
+    Action {
+        id: toggleLayersAction
+        text: qsTr("Toggle &Layers")
+        icon.name: "view-list-details"
+        shortcut: "Ctrl+L"
+        onTriggered: layerDrawer.open()
     }
 
     menuBar: MenuBar {
         Menu {
             title: qsTr("&File")
-            MenuItem {
-                text: qsTr("&Open...")
-                onTriggered: fileDialog.open()
-            }
-            MenuItem {
-                text: qsTr("&Save As...")
-                onTriggered: saveFileDialog.open()
-            }
+            MenuItem { action: openAction }
+            MenuItem { action: saveAsAction }
+        }
+        Menu {
+            title: qsTr("&View")
+            MenuItem { action: toggleLayersAction }
+        }
+        Menu {
+            title: qsTr("&Animation")
+            MenuItem { action: playPauseAction }
+            MenuItem { action: stopAction }
+            MenuSeparator {}
+            MenuItem { action: prevStepAction }
+            MenuItem { action: nextStepAction }
         }
     }
 
@@ -76,35 +150,14 @@ ApplicationWindow {
         RowLayout {
             anchors.fill: parent
             
-            ToolButton {
-                text: qsTr(animTimer.running ? "Pause" : "Play")
-                enabled: appController.hasDiagram && appController.totalAnimationSteps > 0
-                onClicked: {
-                    if (animTimer.running) {
-                        animTimer.stop()
-                    } else {
-                        if (appController.animationStep < 0 || appController.animationStep >= appController.totalAnimationSteps) {
-                            appController.animationStep = 0
-                        }
-                        animTimer.start()
-                    }
-                }
-            }
-            
-            ToolButton {
-                text: qsTr("Stop")
-                enabled: appController.hasDiagram && appController.animationStep >= 0
-                onClicked: {
-                    animTimer.stop()
-                    appController.animationStep = -1
-                }
-            }
+            ToolButton { action: prevStepAction; display: AbstractButton.IconOnly; ToolTip.text: qsTr("Previous Frame"); ToolTip.visible: hovered }
+            ToolButton { action: playPauseAction; display: AbstractButton.IconOnly; ToolTip.text: animTimer.running ? qsTr("Pause") : qsTr("Play"); ToolTip.visible: hovered }
+            ToolButton { action: stopAction; display: AbstractButton.IconOnly; ToolTip.text: qsTr("Stop"); ToolTip.visible: hovered }
+            ToolButton { action: nextStepAction; display: AbstractButton.IconOnly; ToolTip.text: qsTr("Next Frame"); ToolTip.visible: hovered }
 
             Item { Layout.fillWidth: true }
-            ToolButton {
-                text: qsTr("Layers")
-                onClicked: layerDrawer.open()
-            }
+            
+            ToolButton { action: toggleLayersAction; display: AbstractButton.TextBesideIcon; ToolTip.text: qsTr("Toggle Layers"); ToolTip.visible: hovered }
         }
     }
 
@@ -115,7 +168,7 @@ ApplicationWindow {
         edge: Qt.RightEdge
 
         background: Rectangle {
-            color: "#2a2a2a"
+            color: window.palette.window
         }
 
         Column {
@@ -126,7 +179,7 @@ ApplicationWindow {
             Label {
                 text: "Pattern Layers"
                 font.bold: true
-                color: "white"
+                color: window.palette.windowText
             }
             
             Repeater {
@@ -136,7 +189,7 @@ ApplicationWindow {
                     checked: appController.isLayerVisible(index)
                     contentItem: Text {
                         text: parent.text
-                        color: "white"
+                        color: window.palette.windowText
                         leftPadding: parent.indicator.width + parent.spacing
                         verticalAlignment: Text.AlignVCenter
                     }
@@ -151,13 +204,14 @@ ApplicationWindow {
     // The central rendering view powered by C++ QQuickPaintedItem (QPainter via FBO)
     Rectangle {
         anchors.fill: parent
-        color: "#1e1e1e" // sleek dark mode aesthetic
+        color: canvas.backgroundColor
 
         HyperArtCanvas {
             id: canvas
             anchors.fill: parent
             anchors.margins: 20
             controller: appController
+            backgroundColor: window.palette.base
         }
     }
     

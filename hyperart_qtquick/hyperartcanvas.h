@@ -12,12 +12,16 @@ class HyperArtCanvas : public QQuickPaintedItem
 {
     Q_OBJECT
     Q_PROPERTY(AppController* controller READ controller WRITE setController NOTIFY controllerChanged)
+    Q_PROPERTY(QColor backgroundColor READ backgroundColor WRITE setBackgroundColor NOTIFY backgroundColorChanged)
 
 public:
     explicit HyperArtCanvas(QQuickItem *parent = nullptr);
 
     AppController* controller() const { return m_controller; }
     void setController(AppController* controller);
+
+    QColor backgroundColor() const;
+    void setBackgroundColor(const QColor& color);
     
     Q_INVOKABLE void saveAs(const QString& filePath);
 
@@ -25,6 +29,7 @@ public:
 
 signals:
     void controllerChanged();
+    void backgroundColorChanged();
 
 private slots:
     void onDiagramChanged();
@@ -40,6 +45,7 @@ private:
     void drawElement(QPainter *painter, const ElementPtr e);
 
     AppController* m_controller;
+    QColor m_backgroundColor = QColor("#1e1e1e");
 };
 
 #endif // HYPERARTCANVAS_H

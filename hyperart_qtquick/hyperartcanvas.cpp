@@ -32,12 +32,26 @@ void HyperArtCanvas::onDiagramChanged()
     update();
 }
 
+QColor HyperArtCanvas::backgroundColor() const
+{
+    return m_backgroundColor;
+}
+
+void HyperArtCanvas::setBackgroundColor(const QColor& color)
+{
+    if (m_backgroundColor != color) {
+        m_backgroundColor = color;
+        emit backgroundColorChanged();
+        update();
+    }
+}
+
 void HyperArtCanvas::saveAs(const QString& filePath)
 {
     if (width() <= 0 || height() <= 0) return;
     
     QImage img(width(), height(), QImage::Format_ARGB32_Premultiplied);
-    img.fill(QColor("#1e1e1e")); // match QML backdrop
+    img.fill(m_backgroundColor); // match QML backdrop dynamically
     
     QPainter p(&img);
     paint(&p);

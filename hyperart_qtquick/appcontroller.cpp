@@ -1,5 +1,6 @@
 #include "appcontroller.h"
 #include <QFile>
+#include <QFileInfo>
 #include "datareader.h"
 
 AppController::AppController(QObject *parent)
@@ -35,6 +36,20 @@ void AppController::setAnimationStep(int step)
     }
 }
 
+void AppController::nextAnimationStep()
+{
+    if (m_animStep < totalAnimationSteps()) {
+        setAnimationStep(m_animStep < 0 ? 1 : m_animStep + 1);
+    }
+}
+
+void AppController::prevAnimationStep()
+{
+    if (m_animStep > 0) {
+        setAnimationStep(m_animStep - 1);
+    }
+}
+
 void AppController::toggleLayer(int index, bool visible)
 {
     if (index >= 0 && index < m_layerVisible.size()) {
@@ -62,9 +77,11 @@ void AppController::openDesign(const QUrl &fileUrl)
         // Initialize math state on the newly loaded diagram
         m_diagram->make();
         
+        m_documentTitle = QFileInfo(filePath).fileName();
         m_animStep = -1;
         m_layerVisible.assign(m_diagram->numLayers(), true);
         
+        emit documentTitleChanged();
         emit diagramChanged();
         emit animationStepChanged();
         emit layersChanged();
