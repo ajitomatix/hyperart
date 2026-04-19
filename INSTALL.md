@@ -4,6 +4,9 @@ HyperArt is built using [CMake](https://cmake.org) and requires the **Qt 6** fra
 
 Below are the instructions to prepare your environment and build the project on macOS, Windows, and Linux.
 
+> [!IMPORTANT]
+> **Architecture Update**: The legacy desktop UI (`hyperart_qtwidgets`) is now completely frozen and deprecated. Development has moved entirely to the next-generation `hyperart_qtquick` application, which provides superior functionality, performance, dynamic theming, and an identical underlying mathematical core.
+
 ---
 
 ## macOS
@@ -21,19 +24,24 @@ Homebrew is the easiest method since it automatically manages paths and dependen
    ```
 
 2. **Configure the Build**  
-   Using CMake, configure the build directory to use Ninja and the Qt installation from Homebrew. From the `hyperart_qtwidgets` directory, run:
+   Using CMake, configure the build directory to use Ninja and the Qt installation from Homebrew. From the root `hyperart` directory, run:
    ```bash
-   cmake -G Ninja -S . -B ../build-qt68 -DCMAKE_PREFIX_PATH="$(brew --prefix qt)"
+   cmake -G Ninja -S . -B build -DCMAKE_PREFIX_PATH="$(brew --prefix qt)"
    ```
 
 3. **Build the Project**  
    ```bash
-   cmake --build ../build-qt68
+   cmake --build build
    ```
 
 4. **Run the Application**  
+   To launch the modern QtQuick app (Recommended):
    ```bash
-   open ../build-qt68/HyperArt.app
+   open build/hyperart_qtquick/HyperArt.app
+   ```
+   To launch the legacy QtWidgets app (Deprecated):
+   ```bash
+   open build/hyperart_qtwidgets/HyperArtLegacy.app
    ```
 
 ### Option 2: Qt Direct Installer
@@ -45,8 +53,8 @@ Homebrew is the easiest method since it automatically manages paths and dependen
 3. **Configure and Build**  
    Open your terminal and build the project, ensuring you point CMake to your specific Qt installation path (replace `<QT_PATH>` with your installation directory, e.g., `~/Qt/6.8.0/macos`):
    ```bash
-   cmake -S . -B ../build-qt68 -DCMAKE_PREFIX_PATH="<QT_PATH>"
-   cmake --build ../build-qt68
+   cmake -S . -B build -DCMAKE_PREFIX_PATH="<QT_PATH>"
+   cmake --build build
    ```
 
 ---
@@ -64,15 +72,22 @@ On Windows, the easiest way is to use the official Qt tools setup.
    Open the Qt-provided command prompt, which automatically sets up your environment variables (e.g., "Qt 6.8.0 (MSVC 2019 64-bit)" from your Start Menu).
 
 3. **Configure the Build**  
-   Run the following commands from the `hyperart_qtwidgets` folder:
+   Run the following commands from the root `hyperart` folder:
    ```cmd
-   cmake -G Ninja -S . -B ..\build-qt68
+   cmake -G Ninja -S . -B build
    ```
 
 4. **Build and Run**  
    ```cmd
-   cmake --build ..\build-qt68
-   .\..\build-qt68\hyperart_qtwidgets.exe
+   cmake --build build
+   ```
+   To launch the modern QtQuick app (Recommended):
+   ```cmd
+   .\build\hyperart_qtquick\HyperArt.exe
+   ```
+   To launch the legacy QtWidgets app (Deprecated):
+   ```cmd
+   .\build\hyperart_qtwidgets\HyperArtLegacy.exe
    ```
 
 ---
@@ -90,15 +105,20 @@ On Linux, it's highly recommended to use your distribution's native package mana
    ```
 
 2. **Configure and Build**  
-   From the `hyperart_qtwidgets` directory:
+   From the root `hyperart` directory:
    ```bash
-   cmake -G Ninja -S . -B ../build-qt68
-   cmake --build ../build-qt68
+   cmake -G Ninja -S . -B build
+   cmake --build build
    ```
 
 3. **Run the Application**  
+   To launch the modern QtQuick app (Recommended):
    ```bash
-   ../build-qt68/hyperart_qtwidgets
+   build/hyperart_qtquick/HyperArt
+   ```
+   To launch the legacy QtWidgets app (Deprecated):
+   ```bash
+   build/hyperart_qtwidgets/HyperArtLegacy
    ```
 
 ### Fedora / Red Hat-based
@@ -110,11 +130,16 @@ On Linux, it's highly recommended to use your distribution's native package mana
 
 2. **Configure and Build**  
    ```bash
-   cmake -G Ninja -S . -B ../build-qt68
-   cmake --build ../build-qt68
+   cmake -G Ninja -S . -B build
+   cmake --build build
    ```
 
 3. **Run the Application**  
+   To launch the modern QtQuick app (Recommended):
    ```bash
-   ../build-qt68/hyperart_qtwidgets
+   build/hyperart_qtquick/HyperArt
+   ```
+   To launch the legacy QtWidgets app (Deprecated):
+   ```bash
+   build/hyperart_qtwidgets/HyperArtLegacy
    ```

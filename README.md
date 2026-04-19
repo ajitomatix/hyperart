@@ -53,4 +53,8 @@ Many things aren't working or need to improve:
 * Animation functinality (stepping through layer generation) is disabled currently. 
 
 ### 2026
-Ported to **Qt 6.8** (LTS). 
+Ported to **Qt 6.8** (LTS) and structurally modernized to Qt Quick. 
+* **Deprecation Notice**: The legacy desktop frontend codebase (`hyperart_qtwidgets`) has been frozen and retired.
+* The completely new `hyperart_qtquick` application replaces it and easily surpasses the old UI in performance, relying heavily on `QQuickPaintedItem` with native FBO scaling logic.
+* Achieved total feature parity: Resurrected the sequence generator (animq) playback along with topological layer timeline bounding, restoring live drawing logic in QML.
+* Supported dynamic system theme styling (`Light` / `Dark` mode switching). 
