@@ -1,5 +1,5 @@
 /***************************************************************************
- *   HyperArt Copyright (C) 2005-2023 by Ajit Datar (ajitdatar@gmail.com)  *
+ *   HyperArt Copyright (C) 2005-present by Ajit Datar  *
  *                                                                         *
  *   Hyperbolic geometry drawing algorithms developed by                   *
  *   and credited to Dr. Douglas Dunham (ddunham@d.umn.edu)                *
