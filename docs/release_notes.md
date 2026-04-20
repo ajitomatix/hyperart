@@ -1,3 +1,15 @@
+# HyperArt v1.1.0 Release Notes
+
+Welcome to **HyperArt 1.1.0**! 
+
+This release introduces native multi-window support and significant performance optimizations, allowing you to explore and compare multiple hyperbolic designs simultaneously with ease.
+
+### Key Features & Enhancements
+- **Multi-Window Architecture**: We've completely refactored the UI to support multiple concurrent windows. Use `File > New Window` or `File > Open` to spawn independent design canvases.
+- **High-Efficiency Rendering**: To support multiple simultaneous animations, we've optimized the C++ rendering engine. Key improvements include frame-rate stabilization (30 FPS) and viewport constant caching, ensuring smooth performance even with thousands of elements across multiple windows.
+
+---
+
 # HyperArt v1.0.0 Release Notes
 
 Welcome to **HyperArt 1.0.0**! 
