@@ -11,10 +11,12 @@ qt_add_executable(HyperArt
     ${CMAKE_CURRENT_SOURCE_DIR}/../icons/HyperArt.icns
 )
 
+set_source_files_properties(WindowManager.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+
 qt_add_qml_module(HyperArt
     URI hyperart.main
     VERSION 1.0
-    QML_FILES Main.qml
+    QML_FILES Main.qml DesignWindow.qml WindowManager.qml
 )
 
 target_link_libraries(HyperArt PRIVATE hyperart_core Qt6::Quick Qt6::Gui)

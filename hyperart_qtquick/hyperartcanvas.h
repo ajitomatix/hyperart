@@ -46,6 +46,11 @@ private:
 
     AppController* m_controller;
     QColor m_backgroundColor = QColor("#1e1e1e");
+
+    // Rendering cache for performance
+    double m_frameDiameter;
+    double m_frameHalfDiameter;
+    QPointF m_frameOrigin;
 };
 
 #endif // HYPERARTCANVAS_H

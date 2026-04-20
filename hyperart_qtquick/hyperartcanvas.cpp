@@ -74,12 +74,17 @@ QPointF HyperArtCanvas::origin() const
 
 QPointF HyperArtCanvas::mapPoint(const Point& mp) const
 {
-    Point tmp(mp);
-    tmp.weierstrassToPoincare();
+    double px = mp.x();
+    double py = mp.y();
+    // Fast path: check w to avoid expensive string-based weierstrassToPoincare() conversion
+    if (mp.w() != 0.0) {
+        double denom = 1.0 + mp.w();
+        px /= denom;
+        py /= denom;
+    }
 
-    double x = (tmp.x() * diameter() / 2.0 + origin().x());
-    double y = diameter() - (tmp.y() * diameter() / 2.0 + origin().y());
-    return QPointF(x, y);
+    return QPointF(px * m_frameHalfDiameter + m_frameOrigin.x(),
+                   m_frameDiameter - (py * m_frameHalfDiameter + m_frameOrigin.y()));
 }
 
 void HyperArtCanvas::paint(QPainter *painter)
@@ -90,9 +95,14 @@ void HyperArtCanvas::paint(QPainter *painter)
 
     painter->setRenderHint(QPainter::Antialiasing, true);
 
+    // Cache viewport constants once per frame for high-performance math
+    m_frameDiameter = diameter();
+    m_frameHalfDiameter = m_frameDiameter / 2.0;
+    m_frameOrigin = origin();
+
     // Bounding disk
-    QRectF rect(0, 0, diameter(), diameter());
-    rect.moveCenter(origin());
+    QRectF rect(0, 0, m_frameDiameter, m_frameDiameter);
+    rect.moveCenter(m_frameOrigin);
     painter->setPen(Qt::NoPen);
     painter->setBrush(QColor(224, 224, 224));
     painter->drawEllipse(rect);
@@ -195,8 +205,8 @@ void HyperArtCanvas::drawElement(QPainter *painter, const ElementPtr e)
         for (const auto& mhl : hlines) {
             if (mhl.shouldDrawArc()) {
                 QPointF tl = mapPoint(mhl.topLeft());
-                double w = mhl.width() * diameter() / 2.0;
-                double h = mhl.height() * diameter() / 2.0;
+                double w = mhl.width() * m_frameHalfDiameter;
+                double h = mhl.height() * m_frameHalfDiameter;
                 QRectF bounds(tl.x(), tl.y(), w, h);
                 
                 if (first) {
